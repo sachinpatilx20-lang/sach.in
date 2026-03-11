@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sach.in | Share & Save Your Web</title>
+    <meta name="description" content="A premium tool to fetch metadata and save URLs instantly. Created by Sachin Patil.">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="logo">sach.in</div>
+        <nav class="nav-links">
+            <a href="#" id="nav-thumb-finder">Thumbnail Finder</a>
+            <a href="https://www.instagram.com/sachinpatil12n/" target="_blank">Instagram</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <h1>Capture the Web.</h1>
+            <p>Paste any URL and we'll automatically fetch the details for you to save and share.</p>
+        </section>
+
+        <section class="input-section">
+            <div class="input-group">
+                <input type="url" id="url-input" placeholder="Paste any link — we'll save it instantly..." required>
+                <button id="fetch-btn">Save</button>
+            </div>
+        </section>
+
+        <section class="saved-section">
+            <div class="saved-section-header">
+                <h2>Your Saved Links</h2>
+            </div>
+            <div id="links-grid" class="links-grid">
+                <!-- Saved items injected here -->
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Built with ❤️ by <a href="https://www.instagram.com/sachinpatil12n/" class="instagram-link" target="_blank">@sachinpatil12n</a></p>
+        <p style="margin-top: 0.5rem; font-size: 0.8rem;">&copy; 2026 sach.in</p>
+    </footer>
+
+    <!-- Image Selection Modal -->
+    <div id="image-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Thumbnail Finder</h3>
+                <button id="close-modal" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-muted);">Find high-quality thumbnails for any URL.</p>
+                <div class="modal-input-group">
+                    <input type="url" id="modal-url-input" placeholder="Paste webpage URL here...">
+                    <button id="modal-fetch-btn">Grab Thumbnails</button>
+                </div>
+                <div id="modal-grid" class="modal-grid">
+                    <!-- Thumbnails appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
