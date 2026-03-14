@@ -1,6 +1,14 @@
 // --- State Management ---
+let initialUrls = [];
+try {
+    const raw = localStorage.getItem('nexus_pro_urls');
+    initialUrls = raw ? JSON.parse(raw) : [];
+} catch(e) {
+    console.warn("localStorage reading failed or corrupted", e);
+}
+
 const AppState = {
-    urls: JSON.parse(localStorage.getItem('nexus_pro_urls')) || [],
+    urls: Array.isArray(initialUrls) ? initialUrls : [],
     filter: 'all',          // 'all', 'favorites', 'unread', or specific category name
     searchQuery: '',
     viewMode: localStorage.getItem('nexus_pro_view') || 'grid', // 'grid' | 'list'
@@ -82,7 +90,18 @@ const els = {
     importFile: document.getElementById('import-file'),
     
     // Toasts
-    toastContainer: document.getElementById('toast-container')
+    toastContainer: document.getElementById('toast-container'),
+
+    // Mobile Elements
+    mobileMenuBtn: document.getElementById('mobile-menu-btn'),
+    sidebar: document.querySelector('.sidebar'),
+    sidebarOverlay: document.getElementById('sidebar-overlay'),
+    
+    // Mobile Quick Add
+    mobQuickAddForm: document.getElementById('mobile-quick-add-form'),
+    mobQuickAddInput: document.getElementById('mobile-quick-add-input'),
+    mobQuickAddBtn: document.getElementById('mobile-quick-add-btn'),
+    mobQuickAddSpinner: document.getElementById('mobile-quick-add-spinner')
 };
 
 // --- Initialization ---
@@ -147,6 +166,37 @@ function bindEvents() {
         }
     });
 
+    // --- EVENT DELEGATION for Link Cards ---
+    els.linksContainer.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        const link = e.target.closest('a.visit-link');
+        
+        if (link) {
+            const id = link.getAttribute('data-id');
+            if (id) trackVisit(id);
+            return;
+        }
+
+        if (!btn) return;
+
+        if (btn.classList.contains('qr-btn')) {
+            openQrModal(btn.getAttribute('data-url'));
+        } else if (btn.classList.contains('copy-btn')) {
+            const url = btn.getAttribute('data-url');
+            navigator.clipboard.writeText(url).then(() => {
+                showToast('Link copied to clipboard!', 'success');
+            }).catch(() => showToast('Failed to copy link', 'error'));
+        } else if (btn.classList.contains('read-btn')) {
+            toggleReadStatus(btn.getAttribute('data-id'));
+        } else if (btn.classList.contains('star-btn')) {
+            toggleFavorite(btn.getAttribute('data-id'));
+        } else if (btn.classList.contains('edit-btn')) {
+            openModal(btn.getAttribute('data-id'));
+        } else if (btn.classList.contains('delete-btn')) {
+            deleteLink(btn.getAttribute('data-id'));
+        }
+    });
+
     // View Toggles
     els.viewGridBtn.addEventListener('click', () => setViewMode('grid'));
     els.viewListBtn.addEventListener('click', () => setViewMode('list'));
@@ -199,6 +249,12 @@ function bindEvents() {
             
             updateHeader();
             renderLinks();
+
+            if (window.innerWidth <= 768 && els.sidebar && els.sidebar.classList.contains('open')) {
+                els.sidebar.classList.remove('open');
+                els.sidebarOverlay.classList.remove('show');
+                setTimeout(() => els.sidebarOverlay.classList.add('hidden'), 300);
+            }
         });
     });
 
@@ -258,26 +314,43 @@ function bindEvents() {
         clearImagePreview();
     });
 
-    // Magic Auto-Fetch for Quick Add Input
-    els.quickAddForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        let urlStr = els.quickAddInput.value.trim();
+    async function processQuickAdd(urlInput, btnEl, spinnerEl) {
+        let urlStr = urlInput.value.trim();
         if (!urlStr) return;
         
         if (!/^https?:\/\//i.test(urlStr)) {
             urlStr = 'https://' + urlStr;
         }
         
-        els.quickAddBtn.classList.add('hidden');
-        els.quickAddSpinner.classList.remove('hidden');
-        els.quickAddInput.disabled = true;
+        btnEl.classList.add('hidden');
+        spinnerEl.classList.remove('hidden');
+        urlInput.disabled = true;
+        
+        // Show skeleton at top of list
+        const skeletonId = 'skel-' + Date.now();
+        const skelHtml = `
+            <div class="skeleton-card" id="${skeletonId}">
+                <div class="skeleton-image"></div>
+                <div class="skeleton-content">
+                    <div class="skeleton-header">
+                        <div class="skeleton-favicon"></div>
+                        <div class="skeleton-title-group">
+                            <div class="skeleton-line title"></div>
+                            <div class="skeleton-line url"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-line" style="margin-top: 1rem; width: 90%;"></div>
+                    <div class="skeleton-line" style="width: 60%;"></div>
+                </div>
+            </div>
+        `;
+        els.linksContainer.insertAdjacentHTML('afterbegin', skelHtml);
         
         try {
             const details = await fetchUrlDetails(urlStr);
             let hostname = urlStr;
             try { hostname = new URL(urlStr).hostname; } catch(e) {}
             
-            // Fully Auto Save
             const newLink = {
                 id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
                 url: urlStr,
@@ -296,17 +369,48 @@ function bindEvents() {
             saveState();
             renderApp();
             showToast('Magic auto-saved successfully!', 'success');
-            els.quickAddInput.value = '';
+            urlInput.value = '';
         } catch (err) {
             console.error(err);
+            const skel = document.getElementById(skeletonId);
+            if (skel) skel.remove();
             showToast('Failed to auto-fetch. Try adding manually.', 'error');
         } finally {
-            els.quickAddBtn.classList.remove('hidden');
-            els.quickAddSpinner.classList.add('hidden');
-            els.quickAddInput.disabled = false;
-            els.quickAddInput.focus();
+            btnEl.classList.remove('hidden');
+            spinnerEl.classList.add('hidden');
+            urlInput.disabled = false;
+            urlInput.focus();
         }
+    }
+
+    // Magic Auto-Fetch for Quick Add Input (Desktop)
+    els.quickAddForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await processQuickAdd(els.quickAddInput, els.quickAddBtn, els.quickAddSpinner);
     });
+
+    // Magic Auto-Fetch for Quick Add Input (Mobile)
+    if (els.mobQuickAddForm) {
+        els.mobQuickAddForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await processQuickAdd(els.mobQuickAddInput, els.mobQuickAddBtn, els.mobQuickAddSpinner);
+        });
+    }
+
+    // Sidebar toggles
+    if (els.mobileMenuBtn && els.sidebar && els.sidebarOverlay) {
+        els.mobileMenuBtn.addEventListener('click', () => {
+            els.sidebar.classList.add('open');
+            els.sidebarOverlay.classList.remove('hidden');
+            requestAnimationFrame(() => els.sidebarOverlay.classList.add('show'));
+        });
+
+        els.sidebarOverlay.addEventListener('click', () => {
+            els.sidebar.classList.remove('open');
+            els.sidebarOverlay.classList.remove('show');
+            setTimeout(() => els.sidebarOverlay.classList.add('hidden'), 300);
+        });
+    }
 
     // Auto-Fetch Details from URL (Modal)
     els.autoFetchBtn.addEventListener('click', async () => {
@@ -436,6 +540,12 @@ function updateSidebar() {
             AppState.filter = b.getAttribute('data-collection');
             updateHeader();
             renderLinks();
+
+            if (window.innerWidth <= 768 && els.sidebar && els.sidebar.classList.contains('open')) {
+                els.sidebar.classList.remove('open');
+                els.sidebarOverlay.classList.remove('show');
+                setTimeout(() => els.sidebarOverlay.classList.add('hidden'), 300);
+            }
         });
     });
 }
@@ -528,11 +638,11 @@ function renderLinks() {
         card.className = 'link-card';
         card.innerHTML = `
             ${item.unread ? '<div class="unread-indicator" title="Unread"></div>' : ''}
-            ${item.image ? `<div class="link-card-image"><img src="${item.image}" alt="Cover Image" onerror="if(!this.dataset.tried){this.dataset.tried=true;this.src='https://image.thum.io/get/width/600/crop/800/' + encodeURIComponent('${item.url}');}else{this.src='https://placehold.co/600x400/1e293b/94a3b8?text=Image+Unavailable';}"></div>` : ''}
+            ${item.image ? `<div class="link-card-image"><img loading="lazy" src="${item.image}" alt="Cover Image" onload="this.classList.add('loaded')" onerror="if(!this.dataset.tried){this.dataset.tried=true;this.src='https://image.thum.io/get/width/600/crop/800/' + encodeURIComponent('${item.url}');}else{this.src='https://placehold.co/600x400/1e293b/94a3b8?text=Image+Unavailable';this.classList.add('loaded');}"></div>` : ''}
             <div class="link-card-content">
                 <div class="card-header">
                     <div class="favicon">
-                        <img src="${faviconUrl}" alt="" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\\'fa-solid fa-globe\\'></i>';">
+                        <img src="${faviconUrl}" alt="" onload="this.classList.add('loaded')" onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\\'fa-solid fa-globe\\'></i>';">
                     </div>
                     <div class="card-title-group">
                         <h3 class="card-title" title="${item.title}"><a href="${item.url}" target="_blank" rel="noopener noreferrer" class="visit-link" data-id="${item.id}">${item.title}</a></h3>
@@ -581,64 +691,6 @@ function renderLinks() {
     });
 
     els.linksContainer.appendChild(fragment);
-
-    bindCardActions();
-}
-
-function bindCardActions() {
-    // Visit Links tracking
-    document.querySelectorAll('.visit-link').forEach(link => {
-        link.addEventListener('click', (e) => {
-            const id = e.currentTarget.getAttribute('data-id');
-            trackVisit(id);
-        });
-    });
-
-    document.querySelectorAll('.qr-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const url = e.currentTarget.getAttribute('data-url');
-            openQrModal(url);
-        });
-    });
-
-    document.querySelectorAll('.star-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const id = e.currentTarget.getAttribute('data-id');
-            toggleFavorite(id);
-        });
-    });
-
-    document.querySelectorAll('.edit-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const id = e.currentTarget.getAttribute('data-id');
-            openModal(id);
-        });
-    });
-
-    document.querySelectorAll('.copy-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const url = e.currentTarget.getAttribute('data-url');
-            navigator.clipboard.writeText(url).then(() => {
-                showToast('Link copied to clipboard!', 'success');
-            }).catch(() => {
-                showToast('Failed to copy link', 'error');
-            });
-        });
-    });
-
-    document.querySelectorAll('.read-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const id = e.currentTarget.getAttribute('data-id');
-            toggleReadStatus(id);
-        });
-    });
-
-    document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const id = e.currentTarget.getAttribute('data-id');
-            deleteLink(id);
-        });
-    });
 }
 
 // --- Logic Procedures ---
@@ -892,7 +944,12 @@ function closeModal() {
 }
 
 function saveState() {
-    localStorage.setItem('nexus_pro_urls', JSON.stringify(AppState.urls));
+    try {
+        localStorage.setItem('nexus_pro_urls', JSON.stringify(AppState.urls));
+    } catch (e) {
+        console.error('Failed to save state to localStorage:', e);
+        showToast('Storage space exceeded or unavailable', 'error');
+    }
 }
 
 async function fetchUrlDetails(urlStr) {
@@ -913,9 +970,16 @@ async function fetchUrlDetails(urlStr) {
         
         let title = data.title || '';
         let description = data.description || '';
-        let image = data.image?.url || data.logo?.url || '';
         
-        // 3. Fallback for normal websites that do not have an Open Graph image
+        // Priority sequence: 1. og:image > 2. twitter:image (handled by microlink) > 3. favicon > 4. thum.io
+        let image = '';
+        if (data.image && data.image.url) {
+            image = data.image.url;
+        } else if (data.logo && data.logo.url) {
+            image = data.logo.url; // Facvicon fallback
+        }
+        
+        // Screenshot fallback
         if (!image) {
             image = `https://image.thum.io/get/width/600/crop/800/${urlStr}`;
         }

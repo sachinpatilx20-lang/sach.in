@@ -84,6 +84,9 @@
         <main class="main-content">
             <!-- Top App Bar -->
             <header class="top-bar glass-panel">
+                <button class="icon-btn mobile-menu-btn hidden-desktop" id="mobile-menu-btn" title="Menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
                 <div class="search-container">
                     <i class="fa-solid fa-magnifying-glass search-icon"></i>
                     <input type="text" id="global-search" placeholder="Search by title, url, tags, or notes... (Press Cmd/Ctrl + K)" autocomplete="off">
@@ -159,6 +162,20 @@
                 <!-- URL cards injected by JS -->
             </div>
         </main>
+        
+        <!-- Mobile Bottom Quick Add -->
+        <div class="mobile-quick-add glass-panel hidden-desktop" id="mobile-quick-add-container">
+            <form id="mobile-quick-add-form" class="mobile-quick-add-box">
+                <input type="url" id="mobile-quick-add-input" placeholder="Paste URL to auto-save..." required>
+                <button type="submit" class="btn primary-btn icon-only-btn" id="mobile-quick-add-btn" title="Auto-Save">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+                <div id="mobile-quick-add-spinner" class="hidden text-muted"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            </form>
+        </div>
+        
+        <!-- Mobile Sidebar Overlay -->
+        <div class="sidebar-overlay hidden" id="sidebar-overlay"></div>
     </div>
 
     <!-- Add/Edit Link Modal -->
