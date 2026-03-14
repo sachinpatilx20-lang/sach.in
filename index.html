@@ -4,63 +4,79 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sach.in – Premium Link Manager</title>
-    <meta name="description" content="Manage your links with a premium, glassmorphism-inspired dashboard. Simple, elegant, and powerful.">
+    <meta name="description" content="A premium, aesthetic bookmark manager with a multi-step thumbnail fallback system.">
+    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="dark-theme">
     <div id="app">
+        <!-- Sticky Header -->
         <header>
-            <div class="header-content container">
-                <h1 class="logo">Sach<span>.in</span></h1>
-                <div class="search-container">
-                    <input type="text" id="searchInput" placeholder="Search title, URL, or domain..." autocomplete="off">
-                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <div class="container header-content">
+                <div class="logo-area">
+                    <h1 class="logo">Sach<span>.in</span></h1>
+                </div>
+                <div class="search-area">
+                    <div class="search-bar">
+                        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="text" id="searchInput" placeholder="Search saved links..." autocomplete="off">
+                    </div>
                 </div>
             </div>
         </header>
 
+        <!-- Main Feed -->
         <main class="container">
             <div id="linksGrid" class="links-grid">
-                <!-- Links will be rendered here -->
+                <!-- Links will appear here -->
             </div>
         </main>
 
-        <button id="fab" class="fab" aria-label="Add new link">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <!-- Floating Add Button -->
+        <button id="fab" class="fab" aria-label="Add Link">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </button>
 
+        <!-- Bottom Sheet Popup -->
         <div id="overlay" class="overlay"></div>
-
         <div id="bottomSheet" class="bottom-sheet">
             <div class="sheet-handle"></div>
-            <div class="sheet-content">
-                <h2>Add New Link</h2>
-                <div class="input-group">
-                    <input type="url" id="linkInput" placeholder="https://example.com" autocomplete="off">
-                </div>
+            <div class="sheet-body">
+                <h2 class="sheet-title">New Premium Link</h2>
                 
+                <div class="input-group">
+                    <input type="url" id="linkInput" placeholder="Paste link here (e.g., https://unsplash.com/photo...)" autocomplete="off">
+                </div>
+
+                <!-- Live Preview Card -->
                 <div id="previewContainer" class="preview-container hidden">
-                    <div class="preview-card">
-                        <div class="preview-thumb">
-                            <img id="previewImg" src="" alt="Preview">
+                    <div class="card-preview">
+                        <div class="preview-thumb-box">
+                            <img id="previewImg" src="" alt="Thumbnail">
+                            <div id="previewLoader" class="preview-loader-overlay">
+                                <div class="loader-dots"><span></span><span></span><span></span></div>
+                            </div>
                         </div>
                         <div class="preview-info">
                             <h3 id="previewTitle">Link Title</h3>
-                            <p id="previewDesc">Description will appear here...</p>
+                            <p id="previewDesc">Description will be fetched automatically.</p>
+                            <span id="previewDomain" class="preview-domain">domain.com</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="sheet-actions">
-                    <button id="cancelBtn" class="btn secondary">Cancel</button>
-                    <button id="saveBtn" class="btn primary">Save Link</button>
-                    <div id="loadingSpinner" class="spinner hidden"></div>
+                    <button id="cancelBtn" class="btn btn-secondary">Cancel</button>
+                    <button id="saveBtn" class="btn btn-primary" disabled>Save to Manager</button>
                 </div>
             </div>
         </div>
+
+        <!-- Global Notifications -->
+        <div id="toast" class="toast"></div>
     </div>
 
     <script src="script.js"></script>
