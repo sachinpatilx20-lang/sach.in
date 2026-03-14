@@ -253,7 +253,11 @@ function bindEvents() {
             if (window.innerWidth <= 768 && els.sidebar && els.sidebar.classList.contains('open')) {
                 els.sidebar.classList.remove('open');
                 els.sidebarOverlay.classList.remove('show');
-                setTimeout(() => els.sidebarOverlay.classList.add('hidden'), 300);
+                setTimeout(() => {
+                    if (!els.sidebar.classList.contains('open')) {
+                        els.sidebarOverlay.classList.add('hidden');
+                    }
+                }, 300);
             }
         });
     });
@@ -544,7 +548,11 @@ function updateSidebar() {
             if (window.innerWidth <= 768 && els.sidebar && els.sidebar.classList.contains('open')) {
                 els.sidebar.classList.remove('open');
                 els.sidebarOverlay.classList.remove('show');
-                setTimeout(() => els.sidebarOverlay.classList.add('hidden'), 300);
+                setTimeout(() => {
+                    if (!els.sidebar.classList.contains('open')) {
+                        els.sidebarOverlay.classList.add('hidden');
+                    }
+                }, 300);
             }
         });
     });
